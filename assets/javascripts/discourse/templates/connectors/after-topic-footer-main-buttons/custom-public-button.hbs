@@ -1,32 +1,70 @@
 {{#if currentUser.can_see_topic_group_button}}
-  <button
-    class="btn topic-group-button"
-    title={{siteSettings.topic_group_button_title}}
-    {{action "clickButton"}}>{{siteSettings.topic_group_button_label}}</button>
-    <style>
-    .form-popup {
-    display: none;
-    position: fixed;
-    bottom: 200px;
-    right: 100px;
-    border: 10px solid #f1f1f1;
-    z-index: 9;
-    }
-  </style>
-    <div class="form-popup" id="myForm">
-  	<form action="https://meta.discourse.org/search" class="form-container">
-    <h1>Topic-Organizer</h1>
 
-    <label for="search"><b>SEARCH</b></label>
-    <span>Search</span>&nbsp;<input id="q" name="q" type="text" placeholder="search topics, posts, users or categories">
+<div class="hover_bkgr_fricc" id="myForm">
+  <span class="helper"></span>
 
-    <input type="checkbox">Topic 1<br>
-    <input type="checkbox">Topic 2<br>
-    <input type="checkbox">Topic 3<br>
-    <input type="checkbox">Topic 4<br>
+  <div>
+    <h1>Topic Organizer</h1>
+    <br>
+    <form autocomplete="off">
 
-    <button type="submit" class="btn">Login</button>
+      <div class="autocomplete" style="width:500px;">
+        {{input id="myInput" type='text' value=input_text name="myCountry" placeholder="Search for topics.." key-press=(action "autocomplete") }}
+      </div>
+
+      <button id="addt" type="submit" class="btn submit" {{action "addtopic"}}>Add</button>
+      <input type="hidden" id="flag" value="false">
+
+      <!-- <div class="tooltip"><strong>Help?</strong>
+        <span class="tooltiptext">Tips for using<br>
+         -Add multiple topics as pre/post by selecting the corresponding checkboxes and clicking the <b>Add</b> button <br>
+         -You can view/delete a previously added topic via the <b>UPDATE</b> button<br>
+         -Click the <b>OK</b> to submit your response</span>
+      </div> -->
+
+      <div class="pre_post_switch">
+        <input type="radio" name="toggle" id="pre" checked onclick={{action "checkIfSequencerValidForPre"}}>Previous topics
+        <input type="radio" name="toggle" id="post" onclick={{action "checkIfSequencerValidForPost"}}>Next topics
+        <hr><br>
+      </div>
+
+      <div align="center"><b>Sequence on?</b>
+        <input id="sequencer_checkbox" type="checkbox" checked={{isChecked}} onclick={{action "checkIfSequencerValid" value="target.checked"}} />
+      </div>
+      <br>
+    </form>
+
+    <p><b>Previous topics</b></p>
+    <div class="prereqs" id="prereq-list" align="center" padding="100px">
+      {{!-- <div class="loader" id="spinning-wheel-pre"></div> --}}
+    </div>
+    <br><br>
+
+    <p><b>Next topics</b></p>
+    <div class="postreqs" id="postreq-list" align="center" padding="100px">
+      {{!-- <div class="loader" id="spinning-wheel-post"></div> --}}
+    </div>
+    <br><br>
+
+    <button type="submit" class="btn submit" {{ action "createTopicRecord" }}>OK</button>
+    <!--  <button type="button" class="btn clear" {{action "clearall"}}>Clear All</button> -->
     <button type="button" class="btn cancel" {{action "closeForm"}}>Close</button>
-  </form>
+    <button type="submit" class="tooltip" align="left" >?
+      <span class="tooltiptext">Tips for using<br>
+       -Add multiple topics as pre/post by selecting the corresponding checkboxes and clicking the <b>Add</b> button <br>
+       -You can view/delete a previously added topic via the <b>UPDATE</b> button<br>
+       -Click the <b>OK</b> to submit your response</span>
+    </button>
+    {{!-- <div class="tooltip"><strong>Help?</strong>
+      <span class="tooltiptext">Tips for using<br>
+       -Add multiple topics as pre/post by selecting the corresponding checkboxes and clicking the <b>Add</b> button <br>
+       -You can view/delete a previously added topic via the <b>UPDATE</b> button<br>
+       -Click the <b>OK</b> to submit your response</span>
+    </div> --}}
+    
+  </div>
+
 </div>
+<div id="snackbar">Successfully added!</div>
+
 {{/if}}
