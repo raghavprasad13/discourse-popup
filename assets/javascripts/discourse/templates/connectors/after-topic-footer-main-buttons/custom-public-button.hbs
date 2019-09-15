@@ -46,7 +46,9 @@
     </div>
     <br><br>
 
-    <button type="submit" class="btn submit" {{ action "createTopicRecord" }}>OK</button>
+    {{d-button class="btn btn-primary" action="createTopicRecord" actionParam=model label="tl_post_lock.OK_button_label"}}
+
+    {{!-- <button type="submit" class="btn submit" {{ action "createTopicRecord"}}>OK</button> --}}
     <!--  <button type="button" class="btn clear" {{action "clearall"}}>Clear All</button> -->
     <button type="button" class="btn cancel" {{action "closeForm"}}>Close</button>
     <button type="submit" class="tooltip" align="left" >?

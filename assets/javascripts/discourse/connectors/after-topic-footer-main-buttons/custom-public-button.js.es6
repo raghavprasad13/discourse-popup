@@ -1,5 +1,11 @@
 import { arr_mapping, init_arr, current_topic_id, reverse_map, url_map, initial_selected_topics_pre, initial_selected_topic_ids_pre, initial_selected_topics_post, initial_selected_topic_ids_post, init_pre, init_post, hostname } from '../../initializers/admin_button';
 
+import { popupAjaxError } from 'discourse/lib/ajax-error';
+import Topic from 'discourse/models/topic';
+import { ajax } from 'discourse/lib/ajax';
+
+// import { arr_mapping, init_arr, current_topic_id, reverse_map, url_map, initial_selected_topics_pre, initial_selected_topic_ids_pre, initial_selected_topics_post, initial_selected_topic_ids_post, init_pre, init_post, hostname } from '../../initializers/admin_button';
+
 var selected_topics_pre = new Set(initial_selected_topics_pre);
 var selected_topic_ids_pre = new Set(initial_selected_topic_ids_pre);
 var selected_topic_ids_post = new Set(initial_selected_topic_ids_post);
@@ -15,7 +21,13 @@ var noOfPostTopicsAdded = 0;
 export default {
   actions: {
 
-    createTopicRecord() {
+    createTopicRecord(topic) {
+
+      // .then((result) => {
+      //   topic.set('custom_fields.next_topic_id', result.topic.next_topic_id);
+      // }).catch(() => {
+      //   bootbox.alert(I18n.t('topic_trading.error_while_marked_as_sold'));
+      // });
 
       var preChips = document.querySelectorAll("#prereq-list .chip");
       var postChips = document.querySelectorAll("#postreq-list .chip");
@@ -41,216 +53,328 @@ export default {
         console.log(":( the array empty");
         return;
       }
-      this.set('notes', []);
-      var prearr = Array.from(selectedTopicsPre);
-      var postarr = Array.from(selectedTopicsPost);
 
-      this.store.findAll('note')
-        .then(result => {
-          for (const selectedTopicIdPre of prearr) {
-            var prereqsAreTheSame;
-            var postreqsToBeAdded;
-            var isSequenceOn;
-            var recordExistsFlag = false;
+      // this.set('notes', []);
+      
+      var prearr = "";
+      var postarr = "";
 
-            for (const note of result.content) {
-              if (note['id'] == selectedTopicIdPre) {
-                recordExistsFlag = true;
-                prereqsAreTheSame = note['prior_topic_id'];
-                postreqsToBeAdded = note['next_topic_id'];
-                isSequenceOn = note['sequence_on'];
+      var sequence_on = "" + document.getElementById("sequencer_checkbox").checked;
+      console.log("Sequencer on: "+sequence_on);
 
-                if (postreqsToBeAdded && !postreqsToBeAdded.includes("" + current_topic_id)) {
-                  // console.log("checking if includes");
-                  // console.log(postreqsToBeAdded);
-                  postreqsToBeAdded.push("" + current_topic_id);
-                  if (isSequenceOn == "true") {
-                    if (postreqsToBeAdded.length > 1)
-                      isSequenceOn = "false";
-                  }
-                }
-                else if(!postreqsToBeAdded) {
-                  postreqsToBeAdded = [];
-                  postreqsToBeAdded.push("" + current_topic_id);
-                  if (isSequenceOn == "true") {
-                    if (postreqsToBeAdded.length > 1)
-                      isSequenceOn = "false";
-                  }
-                }
+      for(var elem of selectedTopicsPre) {
+        if(prearr.length == 0)
+          prearr = prearr+elem;
+        else
+          prearr = prearr+","+elem;
+      }
 
-                break;
-              }
-            }
-
-            if (!recordExistsFlag) {
-              postreqsToBeAdded = [];
-              postreqsToBeAdded.push(current_topic_id);
-              isSequenceOn = "false";
-            }
-
-            prereqsAreTheSame = new Set(prereqsAreTheSame);
-            postreqsToBeAdded = new Set(postreqsToBeAdded);
-            const topicRecord = this.store.createRecord('note', {
-              id: selectedTopicIdPre,
-              prior_topic_id: Array.from(prereqsAreTheSame),
-              next_topic_id: Array.from(postreqsToBeAdded),
-              sequence_on: isSequenceOn
-            });
-
-            topicRecord.save()
-              .then(result => {
-                this.notes.pushObject(result.target);
-              })
-              .catch(console.error);
-
-          }
+      for(var elem of selectedTopicsPost) {
+        if(postarr.length == 0)
+          postarr = postarr+elem;
+        else
+          postarr = postarr+","+elem;
+      }
 
 
-          for (const selectedTopicIdPost of postarr) {
-            var prereqsToBeAdded;
-            var postreqsAreTheSame;
-            var isSequenceOn;
-            var recordExistsFlag = false;
-
-            for (const note of result.content) {
-              if (note['id'] == selectedTopicIdPost) {
-                recordExistsFlag = true;
-                prereqsToBeAdded = note['prior_topic_id'];
-                postreqsAreTheSame = note['next_topic_id'];
-                isSequenceOn = note['sequence_on'];
-
-                if (prereqsToBeAdded && !prereqsToBeAdded.includes("" + current_topic_id)) {
-                  prereqsToBeAdded.push("" + current_topic_id);
-                  if (isSequenceOn == "true") {
-                    if (prereqsToBeAdded.length > 1)
-                      isSequenceOn = "false";
-                  }
-                }
-                else if(!prereqsToBeAdded) {
-                  prereqsToBeAdded = [];
-                  prereqsToBeAdded.push("" + current_topic_id);
-                  if (isSequenceOn == "true") {
-                    if (prereqsToBeAdded.length > 1)
-                      isSequenceOn = "false";
-                  }
-                }
-
-                break;
-              }
-            }
-
-            if (!recordExistsFlag) {
-              prereqsToBeAdded = [];
-              prereqsToBeAdded.push(current_topic_id);
-              isSequenceOn = "false";
-            }
-
-            prereqsToBeAdded = new Set(prereqsToBeAdded);
-            postreqsAreTheSame = new Set(postreqsAreTheSame);
-            const topicRecord = this.store.createRecord('note', {
-              id: selectedTopicIdPost,
-              prior_topic_id: Array.from(prereqsToBeAdded),
-              next_topic_id: Array.from(postreqsAreTheSame),
-              sequence_on: isSequenceOn
-            });
-
-            topicRecord.save()
-              .then(result => {
-                this.notes.pushObject(result.target);
-              })
-              .catch(console.error);
-
-          }
-
-
-          for(const existingPrereq of existingPrereqs) {
-            if((!prearr) || (prearr && !prearr.includes(""+existingPrereq))) {
-              var prereqsAreTheSame;
-              var postreqsToBeModified;
-              var isSequenceOn;
-              var modifiedPostreqs = [];
-
-              for(const note of result.content) {
-                if(parseInt(note['id']) == existingPrereq) {
-                  prereqsAreTheSame = note['prior_topic_id'];
-                  postreqsToBeModified = note['next_topic_id'];
-                  isSequenceOn = note['sequence_on'];
-
-                  for(const elem of postreqsToBeModified) {
-                    if(parseInt(elem) != current_topic_id)
-                      modifiedPostreqs.push(elem);
-                  }
-                  break;
-                }
-              }
-
-              const topicRecord = this.store.createRecord('note', {
-                id: existingPrereq,
-                prior_topic_id: Array.from(new Set(prereqsAreTheSame)),
-                next_topic_id: Array.from(new Set(modifiedPostreqs)),
-                sequence_on: isSequenceOn
-              });
-
-              topicRecord.save()
-                .then(result => {
-                  this.notes.pushObject(result.target);
-                })
-                .catch(console.error);
-            }
-          }
-
-
-          for(const existingPostreq of existingPostreqs) {
-            if((!postarr) || (postarr && !postarr.includes(""+existingPostreq))) {
-              var prereqsToBeModified;
-              var postreqsAreTheSame;
-              var isSequenceOn;
-              var modifiedPrereqs = [];
-
-              for(const note of result.content) {
-                if(parseInt(note['id']) == existingPostreq) {
-                  prereqsToBeModified = note['prior_topic_id'];
-                  postreqsAreTheSame = note['next_topic_id'];
-                  isSequenceOn = note['sequence_on'];
-
-                  for(const elem of prereqsToBeModified) {
-                    if(parseInt(elem) != current_topic_id) 
-                      modifiedPrereqs.push(elem);
-                  }
-
-                  break;
-                }
-              }
-
-              const topicRecord = this.store.createRecord('note', {
-                id: existingPostreq,
-                prior_topic_id: Array.from(new Set(modifiedPrereqs)),
-                next_topic_id: Array.from(new Set(postreqsAreTheSame)),
-                sequence_on: isSequenceOn
-              });
-
-              topicRecord.save()
-                .then(result => {
-                  this.notes.pushObject(result.target);
-                })
-                .catch(console.error);
-            }
+      if(postarr.length>0) {
+        ajax("/topic/next", {
+          type: "PUT",
+          data: {
+            topic_id: parseInt(current_topic_id), next_topic_ids: postarr
           }
         });
 
-      const topicRecord = this.store.createRecord('note', {
-        id: current_topic_id,
-        prior_topic_id: prearr,
-        next_topic_id: postarr,
-        sequence_on: "" + document.getElementById("sequencer_checkbox").checked
+        for(var elem of postarr.split(",")) {
+          var previous_of_next, final_result = "";
+          var prevsAlreadyPresent = false;
+          ajax("/topic/retrieve_previous", {
+            type: "GET",
+            data: {
+              topic_id: parseInt(elem)
+            }
+          }).then(result => {
+            prevsAlreadyPresent = true;
+            previous_of_next = result.row_value.split(",");
+            final_result = result.row_value;
+            if(!previous_of_next.includes(""+current_topic_id))
+              final_result = final_result+","+current_topic_id;
+
+            ajax("/topic/previous", {
+              type: "PUT",
+              data: {
+                topic_id: parseInt(elem), previous_topic_ids: final_result
+              }
+            }); 
+          }).catch(console.error);
+
+          if(!prevsAlreadyPresent) {
+            ajax("/topic/previous", {
+              type: "PUT",
+              data: {
+                topic_id: parseInt(elem), previous_topic_ids: ""+current_topic_id
+              }
+            });
+          }
+        }
+      }
+
+      if(prearr.length>0) {
+        ajax("/topic/previous", {
+          type: "PUT",
+          data: {
+            topic_id: parseInt(current_topic_id), previous_topic_ids: prearr 
+          }
+        });
+
+        for(var elem of prearr.split(",")) {
+          var next_of_previous, final_result = "";
+          var nextsAlreadyPresent = false;
+          ajax("/topic/retrieve_next", {
+            type: "GET",
+            data: {
+              topic_id: parseInt(elem)
+            }
+          }).then(result => {
+            nextsAlreadyPresent = true;
+            next_of_previous = result.row_value.split(",");
+            final_result = result.row_value;
+            if(!next_of_previous.includes(""+current_topic_id))
+              final_result = final_result+","+current_topic_id;
+
+            ajax("/topic/next", {
+              type: "PUT",
+              data: {
+                topic_id: parseInt(elem), next_topic_ids: final_result
+              }
+            });
+          }).catch(console.error);
+
+          if(!nextsAlreadyPresent) {
+            ajax("/topic/next", {
+              type: "PUT",
+              data: {
+                topic_id: parseInt(elem), next_topic_ids: ""+current_topic_id
+              }
+            });
+          }
+        }
+      }
+
+      ajax("/topic/sequencer", {
+        type: "PUT",
+        data: {
+          topic_id: parseInt(current_topic_id), sequence_on: sequence_on
+        }
       });
 
-      topicRecord.save()
-        .then(result => {
-          this.notes.pushObject(result.target);
-        })
-        .catch(console.error);
+      // this.store.findAll('note')
+      //   .then(result => {
+      //     for (const selectedTopicIdPre of prearr) {
+      //       var prereqsAreTheSame;
+      //       var postreqsToBeAdded;
+      //       var isSequenceOn;
+      //       var recordExistsFlag = false;
 
+      //       for (const note of result.content) {
+      //         if (note['id'] == selectedTopicIdPre) {
+      //           recordExistsFlag = true;
+      //           prereqsAreTheSame = note['prior_topic_id'];
+      //           postreqsToBeAdded = note['next_topic_id'];
+      //           isSequenceOn = note['sequence_on'];
+
+      //           if (postreqsToBeAdded && !postreqsToBeAdded.includes("" + current_topic_id)) {
+      //             // console.log("checking if includes");
+      //             // console.log(postreqsToBeAdded);
+      //             postreqsToBeAdded.push("" + current_topic_id);
+      //             if (isSequenceOn == "true") {
+      //               if (postreqsToBeAdded.length > 1)
+      //                 isSequenceOn = "false";
+      //             }
+      //           }
+      //           else if(!postreqsToBeAdded) {
+      //             postreqsToBeAdded = [];
+      //             postreqsToBeAdded.push("" + current_topic_id);
+      //             if (isSequenceOn == "true") {
+      //               if (postreqsToBeAdded.length > 1)
+      //                 isSequenceOn = "false";
+      //             }
+      //           }
+
+      //           break;
+      //         }
+      //       }
+
+      //       if (!recordExistsFlag) {
+      //         postreqsToBeAdded = [];
+      //         postreqsToBeAdded.push(current_topic_id);
+      //         isSequenceOn = "false";
+      //       }
+
+      //       prereqsAreTheSame = new Set(prereqsAreTheSame);
+      //       postreqsToBeAdded = new Set(postreqsToBeAdded);
+      //       const topicRecord = this.store.createRecord('note', {
+      //         id: selectedTopicIdPre,
+      //         prior_topic_id: Array.from(prereqsAreTheSame),
+      //         next_topic_id: Array.from(postreqsToBeAdded),
+      //         sequence_on: isSequenceOn
+      //       });
+
+      //       topicRecord.save()
+      //         .then(result => {
+      //           this.notes.pushObject(result.target);
+      //         })
+      //         .catch(console.error);
+
+      //     }
+
+
+      //     for (const selectedTopicIdPost of postarr) {
+      //       var prereqsToBeAdded;
+      //       var postreqsAreTheSame;
+      //       var isSequenceOn;
+      //       var recordExistsFlag = false;
+
+      //       for (const note of result.content) {
+      //         if (note['id'] == selectedTopicIdPost) {
+      //           recordExistsFlag = true;
+      //           prereqsToBeAdded = note['prior_topic_id'];
+      //           postreqsAreTheSame = note['next_topic_id'];
+      //           isSequenceOn = note['sequence_on'];
+
+      //           if (prereqsToBeAdded && !prereqsToBeAdded.includes("" + current_topic_id)) {
+      //             prereqsToBeAdded.push("" + current_topic_id);
+      //             if (isSequenceOn == "true") {
+      //               if (prereqsToBeAdded.length > 1)
+      //                 isSequenceOn = "false";
+      //             }
+      //           }
+      //           else if(!prereqsToBeAdded) {
+      //             prereqsToBeAdded = [];
+      //             prereqsToBeAdded.push("" + current_topic_id);
+      //             if (isSequenceOn == "true") {
+      //               if (prereqsToBeAdded.length > 1)
+      //                 isSequenceOn = "false";
+      //             }
+      //           }
+
+      //           break;
+      //         }
+      //       }
+
+      //       if (!recordExistsFlag) {
+      //         prereqsToBeAdded = [];
+      //         prereqsToBeAdded.push(current_topic_id);
+      //         isSequenceOn = "false";
+      //       }
+
+      //       prereqsToBeAdded = new Set(prereqsToBeAdded);
+      //       postreqsAreTheSame = new Set(postreqsAreTheSame);
+      //       const topicRecord = this.store.createRecord('note', {
+      //         id: selectedTopicIdPost,
+      //         prior_topic_id: Array.from(prereqsToBeAdded),
+      //         next_topic_id: Array.from(postreqsAreTheSame),
+      //         sequence_on: isSequenceOn
+      //       });
+
+      //       topicRecord.save()
+      //         .then(result => {
+      //           this.notes.pushObject(result.target);
+      //         })
+      //         .catch(console.error);
+
+      //     }
+
+
+      //     for(const existingPrereq of existingPrereqs) {
+      //       if((!prearr) || (prearr && !prearr.includes(""+existingPrereq))) {
+      //         var prereqsAreTheSame;
+      //         var postreqsToBeModified;
+      //         var isSequenceOn;
+      //         var modifiedPostreqs = [];
+
+      //         for(const note of result.content) {
+      //           if(parseInt(note['id']) == existingPrereq) {
+      //             prereqsAreTheSame = note['prior_topic_id'];
+      //             postreqsToBeModified = note['next_topic_id'];
+      //             isSequenceOn = note['sequence_on'];
+
+      //             for(const elem of postreqsToBeModified) {
+      //               if(parseInt(elem) != current_topic_id)
+      //                 modifiedPostreqs.push(elem);
+      //             }
+      //             break;
+      //           }
+      //         }
+
+      //         const topicRecord = this.store.createRecord('note', {
+      //           id: existingPrereq,
+      //           prior_topic_id: Array.from(new Set(prereqsAreTheSame)),
+      //           next_topic_id: Array.from(new Set(modifiedPostreqs)),
+      //           sequence_on: isSequenceOn
+      //         });
+
+      //         topicRecord.save()
+      //           .then(result => {
+      //             this.notes.pushObject(result.target);
+      //           })
+      //           .catch(console.error);
+      //       }
+      //     }
+
+
+      //     for(const existingPostreq of existingPostreqs) {
+      //       if((!postarr) || (postarr && !postarr.includes(""+existingPostreq))) {
+      //         var prereqsToBeModified;
+      //         var postreqsAreTheSame;
+      //         var isSequenceOn;
+      //         var modifiedPrereqs = [];
+
+      //         for(const note of result.content) {
+      //           if(parseInt(note['id']) == existingPostreq) {
+      //             prereqsToBeModified = note['prior_topic_id'];
+      //             postreqsAreTheSame = note['next_topic_id'];
+      //             isSequenceOn = note['sequence_on'];
+
+      //             for(const elem of prereqsToBeModified) {
+      //               if(parseInt(elem) != current_topic_id) 
+      //                 modifiedPrereqs.push(elem);
+      //             }
+
+      //             break;
+      //           }
+      //         }
+
+      //         const topicRecord = this.store.createRecord('note', {
+      //           id: existingPostreq,
+      //           prior_topic_id: Array.from(new Set(modifiedPrereqs)),
+      //           next_topic_id: Array.from(new Set(postreqsAreTheSame)),
+      //           sequence_on: isSequenceOn
+      //         });
+
+      //         topicRecord.save()
+      //           .then(result => {
+      //             this.notes.pushObject(result.target);
+      //           })
+      //           .catch(console.error);
+      //       }
+      //     }
+      //   });
+
+      // const topicRecord = this.store.createRecord('note', {
+      //   id: current_topic_id,
+      //   prior_topic_id: prearr,
+      //   next_topic_id: postarr,
+      //   sequence_on: "" + document.getElementById("sequencer_checkbox").checked
+      // });
+
+      // topicRecord.save()
+      //   .then(result => {
+      //     this.notes.pushObject(result.target);
+      //   })
+      //   .catch(console.error);
+      //   
+      
 
       function showSnackbar() {
         // Get the snackbar DIV
@@ -484,13 +608,44 @@ export default {
         if (dragSrcEl != this) {
           // Set the source column's HTML to the HTML of the column we dropped on.
           //alert(this.outerHTML);
-          //dragSrcEl.innerHTML = this.innerHTML;
-          //this.innerHTML = e.dataTransfer.getData('text/html');
+            //dragSrcEl.innerHTML = this.innerHTML;
+            //this.innerHTML = e.dataTransfer.getData('text/html');
           this.parentNode.removeChild(dragSrcEl);
           var dropHTML = e.dataTransfer.getData('text/html');
           this.insertAdjacentHTML('beforebegin', dropHTML);
           var dropElem = this.previousSibling;
           addDnDHandlers(dropElem);
+          console.log(dropElem);
+          var parentn=dropElem.parentNode;
+          console.log("parent:"+parentn.id);
+          console.log(parentn);
+          var bt=dropElem.getElementsByClassName("closebtn")[0];
+          console.log(bt);
+          bt.addEventListener("click", function(ee) {
+          var idn = ee.target.parentNode.id;
+          document.getElementById(idn).remove();
+          if(parentn.id=="prereq-list")
+          {
+            noOfPreTopicsAdded -= 1;
+          selected_topics_pre.delete(idn);
+          selected_topic_ids_pre.delete(reverse_map[idn]);
+          }
+          else if(parentn.id=="postreq-list")
+          {
+            noOfPostTopicsAdded -= 1;
+          selected_topics_post.delete(idn);
+          selected_topic_ids_post.delete(reverse_map[idn]);
+          }
+
+          if (!arr.includes(idn)) {
+            arr.push(idn);
+          }
+          
+        });
+
+         // console.log(dropHTML);
+
+
 
         }
         this.classList.remove('over');
@@ -611,13 +766,14 @@ export default {
       }
 
       var inp = document.getElementById("myInput");
+      
       var currentFocus;
       /*execute a function when someone writes in the text field:*/
       inp.addEventListener("input", function(e) {
         var a, b, i, val = this.value;
         /*close any already open lists of autocompleted values*/
         closeAllLists();
-        if (!val) { return false; }
+        if (!val) { document.getElementById("addt").style.display = "none"; return false;  }
         currentFocus = -1;
         /*create a DIV element that will contain the items (values):*/
         a = document.createElement("DIV");
